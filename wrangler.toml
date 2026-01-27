@@ -1,0 +1,86 @@
+# ⬛⬜🛣️ BlackRoad Cloudflare Workers Agent System
+# Auto-updating repo scrapers with self-resolution capabilities
+
+name = "blackroad-agents"
+main = "src/index.ts"
+compatibility_date = "2024-06-14"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+GITHUB_ORG = "BlackRoad-OS"
+PRIMARY_REPOS = "blackroad-prism-console,bitcoin"
+
+# KV Namespaces for caching scraped data
+[[kv_namespaces]]
+binding = "REPO_CACHE"
+id = "repo_cache_kv_id"
+
+[[kv_namespaces]]
+binding = "AGENT_STATE"
+id = "agent_state_kv_id"
+
+[[kv_namespaces]]
+binding = "RESOLUTION_LOG"
+id = "resolution_log_kv_id"
+
+# Durable Objects for stateful agents
+[durable_objects]
+bindings = [
+  { name = "AGENT_COORDINATOR", class_name = "AgentCoordinator" },
+  { name = "JOB_QUEUE", class_name = "JobQueue" },
+  { name = "REPO_WATCHER", class_name = "RepoWatcher" },
+  { name = "SELF_HEALER", class_name = "SelfHealer" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["AgentCoordinator", "JobQueue", "RepoWatcher", "SelfHealer"]
+
+# Queues for async job processing
+[[queues.producers]]
+queue = "agent-jobs"
+binding = "JOBS_QUEUE"
+
+[[queues.consumers]]
+queue = "agent-jobs"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 3
+dead_letter_queue = "agent-jobs-dlq"
+
+[[queues.producers]]
+queue = "agent-jobs-dlq"
+binding = "DLQ_QUEUE"
+
+[[queues.consumers]]
+queue = "agent-jobs-dlq"
+max_batch_size = 5
+max_batch_timeout = 60
+
+# Cron triggers for scheduled tasks
+[triggers]
+crons = [
+  "*/15 * * * *",   # Every 15 min - Quick health check
+  "0 * * * *",      # Every hour - Full repo scan
+  "0 0 * * *",      # Daily - Deep cohesiveness analysis
+  "0 0 * * 0"       # Weekly - Comprehensive self-resolution audit
+]
+
+# R2 bucket for storing scraped artifacts
+[[r2_buckets]]
+binding = "ARTIFACTS"
+bucket_name = "blackroad-artifacts"
+
+# Development overrides
+[env.dev]
+name = "blackroad-agents-dev"
+[env.dev.vars]
+ENVIRONMENT = "development"
+
+# Staging
+[env.staging]
+name = "blackroad-agents-staging"
+[env.staging.vars]
+ENVIRONMENT = "staging"
